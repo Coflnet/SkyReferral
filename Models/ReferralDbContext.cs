@@ -1,19 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Coflnet.Sky.Base.Models
+namespace Coflnet.Sky.Referral.Models
 {
     /// <summary>
     /// <see cref="DbContext"/> For flip tracking
     /// </summary>
-    public class BaseDbContext : DbContext
+    public class ReferralDbContext : DbContext
     {
-        public DbSet<Flip> Flips { get; set; }
+        public DbSet<ReferralElement> Referrals { get; set; }
 
         /// <summary>
-        /// Creates a new instance of <see cref="BaseDbContext"/>
+        /// Creates a new instance of <see cref="ReferralDbContext"/>
         /// </summary>
         /// <param name="options"></param>
-        public BaseDbContext(DbContextOptions<BaseDbContext> options)
+        public ReferralDbContext(DbContextOptions<ReferralDbContext> options)
         : base(options)
         {
         }
@@ -26,9 +26,10 @@ namespace Coflnet.Sky.Base.Models
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Flip>(entity =>
+            modelBuilder.Entity<ReferralElement>(entity =>
             {
-                entity.HasIndex(e => new { e.AuctionId });
+                entity.HasIndex(e => e.Invited).IsUnique();
+                entity.HasIndex(e => e.Inviter);
             });
         }
     }
