@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Coflnet.Payments.Client.Api;
 using System.Collections.Generic;
+using Microsoft.Extensions.Configuration;
 
 namespace Coflnet.Sky.Referral.Services
 {
@@ -20,13 +21,15 @@ namespace Coflnet.Sky.Referral.Services
         private TopUpApi topUpApi;
         private UserApi paymentUserApi;
         private ProductsApi productsApi;
+        private IConfiguration config;
 
-        public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi)
+        public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi, IConfiguration config)
         {
             this.db = db;
             this.topUpApi = topUpApi;
             this.paymentUserApi = paymentUserApi;
             this.productsApi = productsApi;
+            this.config = config;
         }
 
         public async Task<ReferralElement> AddReferral(string userId, string referredUser)
@@ -71,11 +74,10 @@ namespace Coflnet.Sky.Referral.Services
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 100);
             var id = user.Invited;
             // give user 24 hours of special premium
-            // todo
-            var optionName = "verify-mc";
+            var optionName = config["PRODUCTS:VERIFY_MC"];
             var amount = 0;
             await TopupAmount(userId, minecraftUuid, optionName, amount);
-            var productName = "test-premium";
+            var productName = config["PRODUCTS:TEST_PREMIUM"];
             paymentUserApi.UserUserIdPurchaseProductSlugPost(userId, productName);
         }
 
@@ -101,7 +103,7 @@ namespace Coflnet.Sky.Referral.Services
                 user.Flags |= flag;
                 // award coins to inviter
                 var inviter = user.Inviter;
-                await TopupAmount(inviter, $"{userId}+{flag}", "referal-bonus", rewardSize);
+                await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
             }
 
             return user;
