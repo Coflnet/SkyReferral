@@ -3,7 +3,6 @@ using System.IO;
 using System.Reflection;
 using Coflnet.Sky.Referral.Models;
 using Coflnet.Sky.Referral.Services;
-using hypixel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Prometheus;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Referral
 {

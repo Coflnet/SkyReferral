@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Coflnet.Sky.Referral.Controllers;
 using Coflnet.Payments.Client.Model;
 using Coflnet.Payments.Client.Api;
+using System.Runtime.Serialization;
 
 namespace Coflnet.Sky.Referral.Services
 {
@@ -41,14 +42,14 @@ namespace Coflnet.Sky.Referral.Services
             {
                 var service = GetService();
                 await service.NewPurchase(lp.UserId, lp.Amount, lp.Reference);
-            }, stoppingToken, "flipbase", AutoOffsetReset.Earliest, new TransactionDeserializer());
+            }, stoppingToken, "sky-referral", AutoOffsetReset.Earliest, new TransactionDeserializer());
             var verfify = Coflnet.Kafka.KafkaConsumer.Consume<VerificationEvent>(config["KAFKA_HOST"], config["TOPICS:VERIFIED"], async lp =>
             {
                 var service = GetService();
                 await service.Verified(lp.UserId, lp.MinecraftUuid);
-            }, stoppingToken, "flipbase");
+            }, stoppingToken, "sky-referral");
 
-            await Task.WhenAny(flipCons,verfify);
+            await Task.WhenAny(flipCons, verfify);
             throw new Exception("consuming ended");
         }
 
@@ -68,17 +69,21 @@ namespace Coflnet.Sky.Referral.Services
             return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ReferralService>();
         }
 
+
+        [DataContract]
         public class VerificationEvent
         {
             /// <summary>
             /// UserId of the user
             /// </summary>
             /// <value></value>
+            [DataMember(Name = "userId")]
             public string UserId { get; set; }
             /// <summary>
             /// Minecraft uuid of the verified account
             /// </summary>
             /// <value></value>
+            [DataMember(Name = "uuid")]
             public string MinecraftUuid { get; set; }
         }
 

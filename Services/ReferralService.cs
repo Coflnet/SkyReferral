@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Coflnet.Payments.Client.Api;
 using System.Collections.Generic;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Referral.Services
 {
@@ -22,14 +23,16 @@ namespace Coflnet.Sky.Referral.Services
         private UserApi paymentUserApi;
         private ProductsApi productsApi;
         private IConfiguration config;
+        private readonly ILogger<ReferralService> logger;
 
-        public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi, IConfiguration config)
+        public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi, IConfiguration config, ILogger<ReferralService> logger)
         {
             this.db = db;
             this.topUpApi = topUpApi;
             this.paymentUserApi = paymentUserApi;
             this.productsApi = productsApi;
             this.config = config;
+            this.logger = logger;
         }
 
         public async Task<ReferralElement> AddReferral(string userId, string referredUser)
@@ -37,7 +40,12 @@ namespace Coflnet.Sky.Referral.Services
             var flipFromDb = await db.Referrals.Where(f => f.Invited == referredUser).FirstOrDefaultAsync();
             if (flipFromDb != null)
                 throw new ApiException("You have already used a referral link");
+            ReferralElement flip = await CreateNewRef(userId, referredUser);
+            return flip;
+        }
 
+        private async Task<ReferralElement> CreateNewRef(string userId, string referredUser)
+        {
             var flip = new ReferralElement() { Inviter = userId, Invited = referredUser };
             db.Referrals.Add(flip);
             await db.SaveChangesAsync();
@@ -71,8 +79,8 @@ namespace Coflnet.Sky.Referral.Services
 
         public async Task Verified(string userId, string minecraftUuid)
         {
+            logger.LogInformation($"Verified user {userId} with account {minecraftUuid}");
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 100);
-            var id = user.Invited;
             // give user 24 hours of special premium
             var optionName = config["PRODUCTS:VERIFY_MC"];
             var amount = 0;
@@ -87,26 +95,49 @@ namespace Coflnet.Sky.Referral.Services
             var topupInvite = topupOptions.Where(t => t.Slug == optionName).FirstOrDefault();
             if (topupInvite == null)
                 throw new ApiException($"Custom topuOption {optionName} doesn't exist");
-            await topUpApi.TopUpCustomPostAsync(userId, new Payments.Client.Model.CustomTopUp()
+            try
             {
-                ProductId = topupInvite.Slug,
-                Reference = reference,
-                Amount = amount
-            });
+                await topUpApi.TopUpCustomPostAsync(userId, new Payments.Client.Model.CustomTopUp()
+                {
+                    ProductId = topupInvite.Slug,
+                    Reference = reference,
+                    Amount = amount
+                });
+            }
+            catch (Exception e)
+            {
+                if (e.Message.Contains("This transaction already happened"))
+                {
+
+                    logger.LogInformation("swollowing dupplicate transaction");
+                    return;
+                }
+                throw e;
+            }
+
+
         }
 
         private async Task<ReferralElement> GetUserAndAwardBonusToInviter(string userId, ReferralFlags flag, int rewardSize)
         {
-            var user = await db.Referrals.Where(r => r.Invited == userId).FirstOrDefaultAsync();
-            if (!user.Flags.HasFlag(flag))
+            var refElem = await db.Referrals.Where(r => r.Invited == userId).FirstOrDefaultAsync();
+            if (refElem == null)
             {
-                user.Flags |= flag;
+                // this user has no registered ref but just validated
+                // thereby this user can't be referred anymore
+                logger.LogInformation("adding not referred user");
+                refElem = await CreateNewRef(null, userId);
+            }
+            else if (!refElem.Flags.HasFlag(flag))
+            {
+                refElem.Flags |= flag;
                 // award coins to inviter
-                var inviter = user.Inviter;
-                await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
+                var inviter = refElem.Inviter;
+                if (inviter != null)
+                    await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
             }
 
-            return user;
+            return refElem;
         }
     }
 }
