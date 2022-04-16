@@ -54,9 +54,8 @@ namespace Coflnet.Sky.Referral.Services
 
         public async Task<RefInfo> GetRefInfo(string userId)
         {
-            var refedByTask = db.Referrals.Where(r => r.Invited == userId).FirstOrDefaultAsync();
+            var refedBy = await db.Referrals.Where(r => r.Invited == userId).FirstOrDefaultAsync();
             var referrals = await db.Referrals.Where(r => r.Inviter == userId).ToListAsync();
-            var refedBy = await refedByTask;
             return new RefInfo()
             {
                 Invited = referrals,
