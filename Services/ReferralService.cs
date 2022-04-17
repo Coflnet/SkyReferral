@@ -96,6 +96,7 @@ namespace Coflnet.Sky.Referral.Services
                 throw new ApiException($"Custom topuOption {optionName} doesn't exist");
             try
             {
+                logger.LogInformation($"Toping up {amount} to {userId} with product {optionName}");
                 await topUpApi.TopUpCustomPostAsync(userId, new Payments.Client.Model.CustomTopUp()
                 {
                     ProductId = topupInvite.Slug,
