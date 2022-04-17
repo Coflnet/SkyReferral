@@ -68,10 +68,11 @@ namespace Coflnet.Sky.Referral.Services
         /// </summary>
         /// <param name="userId"></param>
         /// <param name="size"></param>
+        /// <param name="reference"></param>
         /// <returns></returns>
         public async Task NewPurchase(string userId, double size, string reference)
         {
-            var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.FIRST_PURCHASE_BONUS, rewardSize: (int)size);
+            var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.FIRST_PURCHASE_BONUS, rewardSize: Convert.ToInt32(Math.Round(size / 4)));
             // nothing more todo :) (maybe give extra bonus to new user in the future)
         }
 
@@ -130,12 +131,13 @@ namespace Coflnet.Sky.Referral.Services
             }
             else if (!refElem.Flags.HasFlag(flag))
             {
-                refElem.Flags |= flag;
                 // award coins to inviter
                 var inviter = refElem.Inviter;
                 if (inviter != null)
                     await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
             }
+            refElem.Flags |= flag;
+            await db.SaveChangesAsync();
 
             return refElem;
         }
