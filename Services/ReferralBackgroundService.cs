@@ -41,7 +41,7 @@ namespace Coflnet.Sky.Referral.Services
             var flipCons = Coflnet.Kafka.KafkaConsumer.Consume<TransactionEvent>(config["KAFKA_HOST"], config["TOPICS:TRANSACTION"], async lp =>
             {
                 var service = GetService();
-                await service.NewPurchase(lp.UserId, lp.Amount, lp.Reference);
+                await service.NewPurchase(lp.UserId, lp.Amount, lp.Reference, lp.ProductSlug);
             }, stoppingToken, "sky-referral", AutoOffsetReset.Earliest, new TransactionDeserializer());
             var verfify = Coflnet.Kafka.KafkaConsumer.Consume<VerificationEvent>(config["KAFKA_HOST"], config["TOPICS:VERIFIED"], async lp =>
             {
