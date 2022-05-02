@@ -73,7 +73,7 @@ namespace Coflnet.Sky.Referral.Services
         /// <returns></returns>
         public async Task NewPurchase(string userId, double size, string reference, string productSlug)
         {
-            if(productSlug == config["PRODUCTS:VERIFY_MC"])
+            if(productSlug == config["PRODUCTS:VERIFY_MC"] || productSlug == config["PRODUCTS:TEST_PREMIUM"])
                 return; // don't hand out the referral bonus for the verify bonus
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.FIRST_PURCHASE_BONUS, rewardSize: Convert.ToInt32(Math.Round(size / 4)));
             // nothing more todo :) (maybe give extra bonus to new user in the future)
