@@ -73,7 +73,7 @@ namespace Coflnet.Sky.Referral.Services
         /// <returns></returns>
         public async Task NewPurchase(string userId, double size, string reference, string productSlug)
         {
-            if(productSlug == config["PRODUCTS:VERIFY_MC"] || productSlug == config["PRODUCTS:TEST_PREMIUM"])
+            if (productSlug == config["PRODUCTS:VERIFY_MC"] || productSlug == config["PRODUCTS:TEST_PREMIUM"])
                 return; // don't hand out the referral bonus for the verify bonus
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.FIRST_PURCHASE_BONUS, rewardSize: Convert.ToInt32(Math.Round(size / 4)));
             // nothing more todo :) (maybe give extra bonus to new user in the future)
@@ -89,7 +89,10 @@ namespace Coflnet.Sky.Referral.Services
             var amount = 0;
             await TopupAmount(userId, minecraftUuid, optionName, amount);
             var productName = config["PRODUCTS:TEST_PREMIUM"];
-            paymentUserApi.UserUserIdPurchaseProductSlugPost(userId, productName);
+            await ExecuteSwollowDupplicate(async () =>
+            {
+                await paymentUserApi.UserUserIdPurchaseProductSlugPostAsync(userId, productName);
+            });
         }
 
         private async Task TopupAmount(string userId, string reference, string optionName, int amount = 0)
@@ -98,7 +101,7 @@ namespace Coflnet.Sky.Referral.Services
             var topupInvite = topupOptions.Where(t => t.Slug == optionName).FirstOrDefault();
             if (topupInvite == null)
                 throw new ApiException($"Custom topuOption {optionName} doesn't exist");
-            try
+            await ExecuteSwollowDupplicate(async () =>
             {
                 logger.LogInformation($"Toping up {amount} to {userId} with product {optionName}");
                 await topUpApi.TopUpCustomPostAsync(userId, new Payments.Client.Model.CustomTopUp()
@@ -107,6 +110,14 @@ namespace Coflnet.Sky.Referral.Services
                     Reference = reference,
                     Amount = amount
                 });
+            });
+        }
+
+        private async Task ExecuteSwollowDupplicate(Func<Task> action)
+        {
+            try
+            {
+                await action();
             }
             catch (Exception e)
             {
@@ -118,8 +129,6 @@ namespace Coflnet.Sky.Referral.Services
                 }
                 throw e;
             }
-
-
         }
 
         private async Task<ReferralElement> GetUserAndAwardBonusToInviter(string userId, ReferralFlags flag, int rewardSize)
