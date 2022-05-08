@@ -91,7 +91,18 @@ namespace Coflnet.Sky.Referral.Services
             var productName = config["PRODUCTS:TEST_PREMIUM"];
             await ExecuteSwollowDupplicate(async () =>
             {
-                await paymentUserApi.UserUserIdPurchaseProductSlugPostAsync(userId, productName);
+                try
+                {
+                    await paymentUserApi.UserUserIdPurchaseProductSlugPostAsync(userId, productName);
+                }
+                catch (System.Exception e)
+                {
+                    if (e.Message.Contains("insuficcient balance"))
+                    {
+                        logger.LogError($"User {userId} didn't have enough balance to get test premium for {minecraftUuid} (db id: {user.Id}");
+                    }
+                    throw;
+                }
             });
         }
 
