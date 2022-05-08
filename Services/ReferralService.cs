@@ -100,6 +100,7 @@ namespace Coflnet.Sky.Referral.Services
                     if (e.Message.Contains("insuficcient balance"))
                     {
                         logger.LogError($"User {userId} didn't have enough balance to get test premium for {minecraftUuid} (db id: {user.Id}");
+                        return;
                     }
                     throw;
                 }
