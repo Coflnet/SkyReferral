@@ -46,7 +46,7 @@ namespace Coflnet.Sky.Referral.Services
             var verfify = Coflnet.Kafka.KafkaConsumer.Consume<VerificationEvent>(config["KAFKA_HOST"], config["TOPICS:VERIFIED"], async lp =>
             {
                 var service = GetService();
-                await service.Verified(lp.UserId, lp.MinecraftUuid);
+                await service.Verified(lp.UserId, lp.MinecraftUuid, lp.ExistingConCount);
             }, stoppingToken, "sky-referral");
 
             await Task.WhenAny(flipCons, verfify);
@@ -85,6 +85,11 @@ namespace Coflnet.Sky.Referral.Services
             /// <value></value>
             [DataMember(Name = "uuid")]
             public string MinecraftUuid { get; set; }
+            /// <summary>
+            /// How many existing verifications are on this minecraft account
+            /// </summary>
+            [DataMember(Name = "existing")]
+            public int ExistingConCount { get; set; }
         }
 
         public class TransactionDeserializer : IDeserializer<Payments.Client.Model.TransactionEvent>
