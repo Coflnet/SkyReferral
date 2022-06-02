@@ -91,7 +91,7 @@ namespace Coflnet.Sky.Referral.Services
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 100);
             // give user 24 hours of special premium
             var optionName = config["PRODUCTS:VERIFY_MC"];
-            var amount = 0;
+            var amount = 100;
             await TopupAmount(userId, minecraftUuid, optionName, amount);
             var productName = config["PRODUCTS:TEST_PREMIUM"];
             await ExecuteSwollowDupplicate(async () =>
