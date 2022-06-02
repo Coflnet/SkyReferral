@@ -12,6 +12,10 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Prometheus;
 using Coflnet.Sky.Core;
+using System.Net;
+using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Referral
 {
@@ -78,6 +82,42 @@ namespace Coflnet.Sky.Referral
             app.UseRouting();
 
             app.UseAuthorization();
+
+            app.UseExceptionHandler(errorApp =>
+            {
+                errorApp.Run(async context =>
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    context.Response.ContentType = "text/json";
+
+                    var exceptionHandlerPathFeature =
+                        context.Features.Get<IExceptionHandlerPathFeature>();
+
+                    if (exceptionHandlerPathFeature?.Error is ApiException ex)
+                    {
+                        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                        await context.Response.WriteAsync(
+                                        JsonConvert.SerializeObject(new { ex.Message }));
+                       // badRequestCount.Inc();
+                    }
+                    else
+                    {
+                        using var span = OpenTracing.Util.GlobalTracer.Instance.BuildSpan("error").StartActive();
+                        span.Span.Log(exceptionHandlerPathFeature?.Error?.Message);
+                        span.Span.Log(exceptionHandlerPathFeature?.Error?.StackTrace);
+                        var traceId = System.Net.Dns.GetHostName().Replace("commands", "").Trim('-') + "." + span.Span.Context.TraceId;
+                        dev.Logger.Instance.Error(exceptionHandlerPathFeature?.Error, "fatal request error " + span.Span.Context.TraceId);
+                        await context.Response.WriteAsync(
+                            JsonConvert.SerializeObject(new
+                            {
+                                slug = "internal_error",
+                                message = "An unexpected internal error occured. Please check that your request is valid. If it is please report he error and include the Trace.",
+                                trace = traceId
+                            }));
+                        //errorCount.Inc();
+                    }
+                });
+            });
 
             app.UseEndpoints(endpoints =>
             {
