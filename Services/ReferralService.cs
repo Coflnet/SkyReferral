@@ -83,9 +83,9 @@ namespace Coflnet.Sky.Referral.Services
         public async Task Verified(string userId, string minecraftUuid, int exisitngCount)
         {
             logger.LogInformation($"Verified user {userId} with account {minecraftUuid}");
-            if (lp.ExistingConCount > 0)
+            if (exisitngCount > 0)
             {
-                logger.LogInformation($"Account {minecraftUuid} already has {lp.ExistingConCount} connections, not giving any awards");
+                logger.LogInformation($"Account {minecraftUuid} already has {exisitngCount} connections, not giving any awards");
                 return; // don't award
             }
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 100);
