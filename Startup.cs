@@ -70,18 +70,6 @@ namespace Coflnet.Sky.Referral
             {
                 app.UseDeveloperExceptionPage();
             }
-            app.UseSwagger();
-            app.UseSwaggerUI(c =>
-            {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyBase v1");
-                c.RoutePrefix = "api";
-            });
-
-            app.UseHttpsRedirection();
-
-            app.UseRouting();
-
-            app.UseAuthorization();
 
             app.UseExceptionHandler(errorApp =>
             {
@@ -118,6 +106,20 @@ namespace Coflnet.Sky.Referral
                     }
                 });
             });
+
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyBase v1");
+                c.RoutePrefix = "api";
+            });
+
+            app.UseHttpsRedirection();
+
+            app.UseRouting();
+
+            app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
             {
