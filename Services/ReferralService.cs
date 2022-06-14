@@ -99,6 +99,7 @@ namespace Coflnet.Sky.Referral.Services
                 try
                 {
                     await paymentUserApi.UserUserIdPurchaseProductSlugPostAsync(userId, productName);
+                    logger.LogInformation($"successfully purchased test premium for user {userId}");
                 }
                 catch (System.Exception e)
                 {
