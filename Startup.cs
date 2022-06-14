@@ -41,13 +41,9 @@ namespace Coflnet.Sky.Referral
                 c.IncludeXmlComments(xmlPath);
             });
 
-            // Replace with your server version and type.
-            // Use 'MariaDbServerVersion' for MariaDB.
-            // Alternatively, use 'ServerVersion.AutoDetect(connectionString)'.
             // For common usages, see pull request #1233.
             var serverVersion = new MariaDbServerVersion(new Version(Configuration["MARIADB_VERSION"]));
 
-            // Replace 'YourDbContext' with the name of your own DbContext derived class.
             services.AddDbContext<ReferralDbContext>(
                 dbContextOptions => dbContextOptions
                     .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
