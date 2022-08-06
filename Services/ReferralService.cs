@@ -117,6 +117,8 @@ namespace Coflnet.Sky.Referral.Services
         private async Task TopupAmount(string userId, string reference, string optionName, int amount = 0)
         {
             var topupOptions = await productsApi.ProductsTopupGetAsync(0, 200);
+            if (topupOptions == null)
+                throw new ApiException($"Custom topuOption {optionName} doesn't exist");
             var topupInvite = topupOptions.Where(t => t.Slug == optionName).FirstOrDefault();
             if (topupInvite == null)
                 throw new ApiException($"Custom topuOption {optionName} doesn't exist");
