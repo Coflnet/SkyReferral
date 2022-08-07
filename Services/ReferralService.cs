@@ -80,7 +80,13 @@ namespace Coflnet.Sky.Referral.Services
             // nothing more todo :) (maybe give extra bonus to new user in the future)
         }
 
-
+        /// <summary>
+        /// User verified his minecraft account
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="minecraftUuid"></param>
+        /// <param name="exisitngCount"></param>
+        /// <returns></returns>
         public async Task Verified(string userId, string minecraftUuid, int exisitngCount)
         {
             logger.LogInformation($"Verified user {userId} with account {minecraftUuid}");
