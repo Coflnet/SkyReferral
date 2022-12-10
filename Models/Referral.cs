@@ -18,6 +18,10 @@ namespace Coflnet.Sky.Referral.Models
         [DataMember(Name = "invited")]
         [MaxLength(32)]
         public string Invited { get; set; }
+        /// <summary>
+        /// How many coins were purchased by the invited user (first purchase)
+        /// </summary>
+        public int PurchaseAmount { get; set; }
         [DataMember(Name = "flags")]
         public ReferralFlags Flags { get; set; }
         [Timestamp]

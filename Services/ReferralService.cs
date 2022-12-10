@@ -24,6 +24,7 @@ namespace Coflnet.Sky.Referral.Services
         private ProductsApi productsApi;
         private IConfiguration config;
         private readonly ILogger<ReferralService> logger;
+        private readonly double referralBonusPercent = 0.25;
 
         public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi, IConfiguration config, ILogger<ReferralService> logger)
         {
@@ -75,7 +76,7 @@ namespace Coflnet.Sky.Referral.Services
         {
             if (productSlug == config["PRODUCTS:VERIFY_MC"] || productSlug == config["PRODUCTS:TEST_PREMIUM"])
                 return; // don't hand out the referral bonus for the verify bonus
-            var rewardSize = Math.Abs(Convert.ToInt32(Math.Round(size / 4)));
+            var rewardSize = Math.Abs(Convert.ToInt32(Math.Round(size * referralBonusPercent)));
             var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.FIRST_PURCHASE_BONUS, rewardSize);
             // nothing more todo :) (maybe give extra bonus to new user in the future)
         }
@@ -123,7 +124,7 @@ namespace Coflnet.Sky.Referral.Services
         private async Task TopupAmount(string userId, string reference, string optionName, int amount = 0)
         {
             var topupOptions = await productsApi.ProductsTopupGetAsync(0, 200);
-            if(topupOptions == null)
+            if (topupOptions == null)
                 throw new ApiException("Could not get topup options from payment service");
             var topupInvite = topupOptions.Where(t => t.Slug == optionName).FirstOrDefault();
             if (topupInvite == null)
@@ -174,6 +175,8 @@ namespace Coflnet.Sky.Referral.Services
                 var inviter = refElem.Inviter;
                 if (inviter != null)
                     await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
+                if (flag == ReferralFlags.FIRST_PURCHASE_BONUS)
+                    refElem.PurchaseAmount = (int)(rewardSize * referralBonusPercent);
             }
             refElem.Flags |= flag;
             await db.SaveChangesAsync();
