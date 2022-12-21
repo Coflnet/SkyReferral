@@ -14,7 +14,7 @@ using Prometheus;
 using Coflnet.Sky.Core;
 using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace Coflnet.Sky.Referral
@@ -51,7 +51,7 @@ namespace Coflnet.Sky.Referral
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );
             services.AddHostedService<BaseBackgroundService>();
-            services.AddJaeger();
+            services.AddJaeger(Configuration);
             services.AddTransient<ReferralService>();
             var paymentBaseUrl = Configuration["PAYMENTS_BASE_URL"];
             services.AddSingleton(col=>new Payments.Client.Api.ProductsApi(paymentBaseUrl));
@@ -69,38 +69,7 @@ namespace Coflnet.Sky.Referral
 
             app.UseExceptionHandler(errorApp =>
             {
-                errorApp.Run(async context =>
-                {
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-                    context.Response.ContentType = "text/json";
-
-                    var exceptionHandlerPathFeature =
-                        context.Features.Get<IExceptionHandlerPathFeature>();
-
-                    if (exceptionHandlerPathFeature?.Error is ApiException ex)
-                    {
-                        context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                        await context.Response.WriteAsync(
-                                        JsonConvert.SerializeObject(new { ex.Message }));
-                       // badRequestCount.Inc();
-                    }
-                    else
-                    {
-                        using var span = OpenTracing.Util.GlobalTracer.Instance.BuildSpan("error").StartActive();
-                        span.Span.Log(exceptionHandlerPathFeature?.Error?.Message);
-                        span.Span.Log(exceptionHandlerPathFeature?.Error?.StackTrace);
-                        var traceId = System.Net.Dns.GetHostName().Replace("commands", "").Trim('-') + "." + span.Span.Context.TraceId;
-                        dev.Logger.Instance.Error(exceptionHandlerPathFeature?.Error, "fatal request error " + span.Span.Context.TraceId);
-                        await context.Response.WriteAsync(
-                            JsonConvert.SerializeObject(new
-                            {
-                                slug = "internal_error",
-                                message = "An unexpected internal error occured. Please check that your request is valid. If it is please report he error and include the Trace.",
-                                trace = traceId
-                            }));
-                        //errorCount.Inc();
-                    }
-                });
+                ErrorHandler.Add(errorApp.ApplicationServices.GetService<ILogger<Startup>>(), errorApp, "referral");
             });
 
 
