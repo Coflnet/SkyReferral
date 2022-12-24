@@ -176,7 +176,7 @@ namespace Coflnet.Sky.Referral.Services
                 if (inviter != null)
                     await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
                 if (flag == ReferralFlags.FIRST_PURCHASE_BONUS)
-                    refElem.PurchaseAmount = (int)(rewardSize * referralBonusPercent);
+                    refElem.PurchaseAmount = (int)(rewardSize / referralBonusPercent);
             }
             refElem.Flags |= flag;
             await db.SaveChangesAsync();
