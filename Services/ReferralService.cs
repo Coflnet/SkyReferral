@@ -10,9 +10,9 @@ using Microsoft.Extensions.Logging;
 
 namespace Coflnet.Sky.Referral.Services
 {
-    public class ApiException : Exception
+    public class ApiException : Coflnet.Sky.Core.CoflnetException
     {
-        public ApiException(string message) : base(message)
+        public ApiException(string message) : base("referral", message)
         {
         }
     }
