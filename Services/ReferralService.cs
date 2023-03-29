@@ -40,7 +40,10 @@ namespace Coflnet.Sky.Referral.Services
         {
             var flipFromDb = await db.Referrals.Where(f => f.Invited == referredUser).FirstOrDefaultAsync();
             if (flipFromDb != null)
-                throw new ApiException("You have already used a referral link");
+                if(flipFromDb.Inviter == userId)
+                    throw new ApiException("You already used that referral link");
+                else
+                    throw new ApiException("You have already used a referral link");
             ReferralElement flip = await CreateNewRef(userId, referredUser);
             return flip;
         }
