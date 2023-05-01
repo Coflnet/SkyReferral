@@ -26,6 +26,15 @@ namespace Coflnet.Sky.Referral.Services
         private readonly ILogger<ReferralService> logger;
         private readonly double referralBonusPercent = 0.25;
 
+        /// <summary>
+        /// Creates a new instance of the referral service
+        /// </summary>
+        /// <param name="db"></param>
+        /// <param name="topUpApi"></param>
+        /// <param name="paymentUserApi"></param>
+        /// <param name="productsApi"></param>
+        /// <param name="config"></param>
+        /// <param name="logger"></param>
         public ReferralService(ReferralDbContext db, TopUpApi topUpApi, UserApi paymentUserApi, ProductsApi productsApi, IConfiguration config, ILogger<ReferralService> logger)
         {
             this.db = db;
@@ -36,6 +45,13 @@ namespace Coflnet.Sky.Referral.Services
             this.logger = logger;
         }
 
+        /// <summary>
+        /// Adds a new referred user to the database
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="referredUser"></param>
+        /// <returns></returns>
+        /// <exception cref="ApiException"></exception>
         public async Task<ReferralElement> AddReferral(string userId, string referredUser)
         {
             var flipFromDb = await db.Referrals.Where(f => f.Invited == referredUser).FirstOrDefaultAsync();
@@ -56,6 +72,11 @@ namespace Coflnet.Sky.Referral.Services
             return flip;
         }
 
+        /// <summary>
+        /// Returns a summary of the referrals for the given user
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
         public async Task<RefInfo> GetRefInfo(string userId)
         {
             var refedBy = await db.Referrals.Where(r => r.Invited == userId).FirstOrDefaultAsync();
