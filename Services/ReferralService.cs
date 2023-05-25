@@ -120,7 +120,7 @@ namespace Coflnet.Sky.Referral.Services
                 logger.LogInformation($"Account {minecraftUuid} already has {exisitngCount} connections, not giving any awards");
                 return; // don't award
             }
-            var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 100);
+            var user = await GetUserAndAwardBonusToInviter(userId, ReferralFlags.VERIFIED_MC_ACCOUNT, rewardSize: 300);
             // give user 24 hours of special premium
             var optionName = config["PRODUCTS:VERIFY_MC"];
             var amount = 100;
