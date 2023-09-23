@@ -40,12 +40,14 @@ namespace Coflnet.Sky.Referral.Services
 
             var flipCons = Coflnet.Kafka.KafkaConsumer.Consume<TransactionEvent>(config, config["TOPICS:TRANSACTION"], async lp =>
             {
-                var service = GetService();
+                using var scope = scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
                 await service.NewPurchase(lp.UserId, lp.Amount, lp.Reference, lp.ProductSlug);
             }, stoppingToken, "sky-referral", AutoOffsetReset.Earliest, new TransactionDeserializer());
             var verfify = Coflnet.Kafka.KafkaConsumer.Consume<VerificationEvent>(config, config["TOPICS:VERIFIED"], async lp =>
             {
-                var service = GetService();
+                using var scope = scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
                 await service.Verified(lp.UserId, lp.MinecraftUuid, lp.ExistingConCount);
             }, stoppingToken, "sky-referral");
 
@@ -62,11 +64,6 @@ namespace Coflnet.Sky.Referral.Services
             context.Database.MigrateAsync().Wait();
             logger.LogInformation("applied pending migrations");
             await Task.Yield();
-        }
-
-        private ReferralService GetService()
-        {
-            return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<ReferralService>();
         }
 
 
