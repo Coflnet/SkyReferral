@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Referral.Services
         {
             var flipFromDb = await db.Referrals.Where(f => f.Invited == referredUser).FirstOrDefaultAsync();
             if (flipFromDb != null)
-                if(flipFromDb.Inviter == userId)
+                if (flipFromDb.Inviter == userId)
                     throw new ApiException("You already used that referral link");
                 else
                     throw new ApiException("You have already used a referral link");
@@ -197,10 +197,19 @@ namespace Coflnet.Sky.Referral.Services
             {
                 // award coins to inviter
                 var inviter = refElem.Inviter;
-                if (inviter != null)
-                    await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
                 if (flag == ReferralFlags.FIRST_PURCHASE_BONUS)
                     refElem.PurchaseAmount = (int)(rewardSize / referralBonusPercent);
+                if (inviter != null)
+                {
+                    // check for ref spam
+                    var invitedUsers = await db.Referrals.Where(r => r.Inviter == inviter && r.CreatedAt > DateTime.Now.AddDays(-30)).ToListAsync();
+                    if (invitedUsers.Count >= 7 && !invitedUsers.Any(i => i.PurchaseAmount > 1700) && flag == ReferralFlags.VERIFIED_MC_ACCOUNT)
+                    {
+                        logger.LogInformation($"User {inviter} has invited {invitedUsers.Count} users without any premium purchases the last 30 days, not giving any awards");
+                    }
+                    else
+                        await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
+                }
             }
             refElem.Flags |= flag;
             await db.SaveChangesAsync();
