@@ -14,15 +14,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Coflnet.Payments.Client" Version="0.9.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.0">
+    <PackageReference Include="Coflnet.Payments.Client" Version="0.12.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.23">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="6.0.0" />
-    <PackageReference Include="prometheus-net.AspNetCore" Version="5.0.2" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.1.5" />
   </ItemGroup>
 
 </Project>
