@@ -202,7 +202,7 @@ namespace Coflnet.Sky.Referral.Services
                 if (inviter != null)
                 {
                     // check for ref spam
-                    var invitedUsers = await db.Referrals.Where(r => r.Inviter == inviter && r.CreatedAt > DateTime.Now.AddDays(-30)).ToListAsync();
+                    var invitedUsers = await db.Referrals.Where(r => r.Inviter == inviter && r.Flags > 0 && r.CreatedAt > DateTime.Now.AddDays(-30)).ToListAsync();
                     if (invitedUsers.Count >= 7 && !invitedUsers.Any(i => i.PurchaseAmount > 1700) && flag == ReferralFlags.VERIFIED_MC_ACCOUNT)
                     {
                         logger.LogInformation($"User {inviter} has invited {invitedUsers.Count} users without any premium purchases the last 30 days, not giving any awards");
