@@ -130,7 +130,7 @@ namespace Coflnet.Sky.Referral.Services
             {
                 try
                 {
-                    await paymentUserApi.UserUserIdPurchaseProductSlugPostAsync(userId, productName);
+                    await paymentUserApi.UserUserIdServicePurchaseProductSlugPostAsync(userId, productName, minecraftUuid);
                     logger.LogInformation($"successfully purchased test premium for user {userId}");
                 }
                 catch (System.Exception e)
@@ -208,7 +208,10 @@ namespace Coflnet.Sky.Referral.Services
                         logger.LogInformation($"User {inviter} has invited {invitedUsers.Count} users without any premium purchases the last 30 days, not giving any awards");
                     }
                     else
+                    {
                         await TopupAmount(inviter, $"{userId}+{flag}", config["PRODUCTS:REFERAL_BONUS"], rewardSize);
+                        logger.LogInformation($"User {inviter} has invited {invitedUsers.Count} users in the last 30 days");
+                    }
                 }
             }
             refElem.Flags |= flag;
