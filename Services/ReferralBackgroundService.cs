@@ -38,13 +38,13 @@ namespace Coflnet.Sky.Referral.Services
         {
             await Migrate();
 
-            var flipCons = Coflnet.Kafka.KafkaConsumer.Consume<TransactionEvent>(config, config["TOPICS:TRANSACTION"], async lp =>
+            var flipCons = Kafka.KafkaConsumer.Consume<TransactionEvent>(config, config["TOPICS:TRANSACTION"], async lp =>
             {
                 using var scope = scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
                 await service.NewPurchase(lp.UserId, lp.Amount, lp.Reference, lp.ProductSlug);
             }, stoppingToken, "sky-referral", AutoOffsetReset.Earliest, new TransactionDeserializer());
-            var verfify = Coflnet.Kafka.KafkaConsumer.Consume<VerificationEvent>(config, config["TOPICS:VERIFIED"], async lp =>
+            var verfify = Kafka.KafkaConsumer.Consume<VerificationEvent>(config, config["TOPICS:VERIFIED"], async lp =>
             {
                 using var scope = scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
