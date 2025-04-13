@@ -54,6 +54,8 @@ namespace Coflnet.Sky.Referral.Services
         /// <exception cref="ApiException"></exception>
         public async Task<ReferralElement> AddReferral(string userId, string referredUser)
         {
+            if(userId == referredUser)
+                throw new ApiException("You can't refer yourself");
             var flipFromDb = await db.Referrals.Where(f => f.Invited == referredUser).FirstOrDefaultAsync();
             if (flipFromDb != null)
                 if (flipFromDb.Inviter == userId)
