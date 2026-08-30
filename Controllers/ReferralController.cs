@@ -31,12 +31,18 @@ namespace Coflnet.Sky.Referral.Controllers
         /// </summary>
         /// <param name="userId">the user that referred someone</param>
         /// <param name="referedUser"></param>
+        /// <param name="programVersion">offer version displayed before sign-in</param>
+        /// <param name="locale">locale in which the offer was displayed</param>
         /// <returns></returns>
         [HttpPost]
         [Route("{userId}")]
-        public async Task<ReferralElement> TrackReferral(string userId, string referedUser)
+        public async Task<ReferralElement> TrackReferral(
+            string userId,
+            string referedUser,
+            string programVersion,
+            string locale)
         {
-            return await service.AddReferral(userId, referedUser);
+            return await service.AddReferral(userId, referedUser, programVersion, locale);
         }
         /// <summary>
         /// Returns information about invited users

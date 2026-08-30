@@ -41,18 +41,27 @@ namespace Coflnet.Sky.Referral
                 c.IncludeXmlComments(xmlPath);
             });
 
-            // For common usages, see pull request #1233.
-            var serverVersion = new MariaDbServerVersion(new Version(Configuration["MARIADB_VERSION"]));
-
+            var serverVersion = new MariaDbServerVersion(
+                new Version(Configuration["MARIADB_VERSION"]));
             services.AddDbContext<ReferralDbContext>(
                 dbContextOptions => dbContextOptions
                     .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
-                    .EnableSensitiveDataLogging() // <-- These two calls are optional but help
-                    .EnableDetailedErrors()       // <-- with debugging (remove for production).
+                    .EnableDetailedErrors()
             );
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger(Configuration);
             services.AddTransient<ReferralService>();
+            services.AddTransient<RewardProgramService>();
+            if (!ReferralService.IsProgramVersionConfigured(
+                    Configuration["REFERRAL_PROGRAM_VERSION"]))
+                throw new InvalidOperationException(
+                    "REFERRAL_PROGRAM_VERSION must contain 1 to 32 characters");
+            if (Configuration.GetValue<bool>("REWARDS:ENABLED")
+                && (string.IsNullOrWhiteSpace(Configuration["REWARDS:WRITE_TOKEN"])
+                    || Configuration["REWARDS:WRITE_TOKEN"].Length < 32
+                    || string.IsNullOrWhiteSpace(Configuration["REWARDS:WRITE_ACTOR"])))
+                throw new InvalidOperationException(
+                    "Enabled rewards require a write token and actor");
             var paymentBaseUrl = Configuration["PAYMENTS_BASE_URL"];
             services.AddSingleton(col=>new Payments.Client.Api.ProductsApi(paymentBaseUrl));
             services.AddSingleton(col=>new Payments.Client.Api.UserApi(paymentBaseUrl));

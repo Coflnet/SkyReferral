@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace Coflnet.Sky.Referral.Models
@@ -8,6 +12,7 @@ namespace Coflnet.Sky.Referral.Models
     public class ReferralDbContext : DbContext
     {
         public DbSet<ReferralElement> Referrals { get; set; }
+        public DbSet<RewardLedgerEntry> RewardLedger { get; set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="ReferralDbContext"/>
@@ -31,6 +36,68 @@ namespace Coflnet.Sky.Referral.Models
                 entity.HasIndex(e => e.Invited).IsUnique();
                 entity.HasIndex(e => e.Inviter);
             });
+
+            modelBuilder.Entity<RewardLedgerEntry>(entity =>
+            {
+                entity.HasIndex(e => e.Reference).IsUnique();
+                entity.HasIndex(e => e.ClaimCodeHash).IsUnique();
+                entity.HasIndex(e => new { e.RewardAccountId, e.CreatedAt });
+                entity.HasIndex(e => e.RelatedEntryId);
+                entity.HasOne<RewardLedgerEntry>()
+                    .WithMany()
+                    .HasForeignKey(e => e.RelatedEntryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                entity.ToTable("RewardLedger", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_RewardLedger_Kind",
+                        "`Kind` BETWEEN 1 AND 6");
+                    table.HasCheckConstraint(
+                        "CK_RewardLedger_Source",
+                        "`Source` IS NULL OR `Source` BETWEEN 1 AND 4");
+                    table.HasCheckConstraint(
+                        "CK_RewardLedger_Claim",
+                        "(NOT `WasAnonymous` AND `RewardAccountId` IS NOT NULL AND `ClaimCodeHash` IS NULL AND `ClaimedAt` IS NULL) " +
+                        "OR (`WasAnonymous` AND ((`RewardAccountId` IS NULL AND `ClaimCodeHash` IS NOT NULL AND `ClaimedAt` IS NULL) " +
+                        "OR (`RewardAccountId` IS NOT NULL AND `ClaimCodeHash` IS NULL AND `ClaimedAt` IS NOT NULL)))");
+                });
+            });
+        }
+
+        public override int SaveChanges(bool acceptAllChangesOnSuccess)
+        {
+            ProtectLedger();
+            return base.SaveChanges(acceptAllChangesOnSuccess);
+        }
+
+        public override Task<int> SaveChangesAsync(
+            bool acceptAllChangesOnSuccess,
+            CancellationToken cancellationToken = default)
+        {
+            ProtectLedger();
+            return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        }
+
+        private void ProtectLedger()
+        {
+            foreach (var entry in ChangeTracker.Entries<RewardLedgerEntry>()
+                .Where(item => item.State is EntityState.Modified or EntityState.Deleted))
+            {
+                if (entry.State == EntityState.Modified
+                    && entry.OriginalValues.GetValue<bool>(nameof(RewardLedgerEntry.WasAnonymous))
+                    && entry.OriginalValues.GetValue<string>(nameof(RewardLedgerEntry.RewardAccountId)) == null
+                    && entry.OriginalValues.GetValue<string>(nameof(RewardLedgerEntry.ClaimCodeHash)) != null
+                    && entry.Entity.RewardAccountId != null
+                    && entry.Entity.ClaimCodeHash == null
+                    && entry.Entity.ClaimedAt != null
+                    && entry.Properties.Where(property => property.IsModified).All(property =>
+                        property.Metadata.Name is nameof(RewardLedgerEntry.RewardAccountId)
+                            or nameof(RewardLedgerEntry.ClaimCodeHash)
+                            or nameof(RewardLedgerEntry.ClaimedAt)))
+                    continue;
+                throw new InvalidOperationException(
+                    "Reward ledger entries are append-only except for one anonymous claim.");
+            }
         }
     }
 }

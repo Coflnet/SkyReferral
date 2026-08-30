@@ -19,16 +19,21 @@ namespace Coflnet.Sky.Referral.Models
         [MaxLength(32)]
         public string Invited { get; set; }
         /// <summary>
-        /// How many coins were purchased by the invited user (first purchase)
+        /// Legacy first-purchase amount retained for existing rows; current
+        /// referral processing does not write it.
         /// </summary>
         public int PurchaseAmount { get; set; }
         [DataMember(Name = "flags")]
         public ReferralFlags Flags { get; set; }
-        [Timestamp]
+        [DataMember(Name = "programVersion")]
+        [MaxLength(32)]
+        public string ProgramVersion { get; set; }
+        [DataMember(Name = "locale")]
+        [MaxLength(35)]
+        public string Locale { get; set; }
         [DataMember(Name = "updatedAt")]
         public DateTime UpdatedAt { get; set; }
-        [Timestamp]
         [DataMember(Name = "createdAt")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
