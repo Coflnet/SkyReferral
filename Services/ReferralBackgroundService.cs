@@ -29,6 +29,19 @@ namespace Coflnet.Sky.Referral.Services
         /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var verfify = Kafka.KafkaConsumer.Consume<VerificationEvent>(config, config["TOPICS:VERIFIED"], async lp =>
+            {
+                using var scope = scopeFactory.CreateScope();
+                var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
+                await service.Verified(lp.UserId, lp.MinecraftUuid, lp.ExistingConCount);
+            }, stoppingToken, "sky-referral");
+
+            if (!config.GetValue<bool>("REWARDS:ENABLED"))
+            {
+                await verfify;
+                throw new Exception("consuming ended");
+            }
+
             var transactions = Kafka.KafkaConsumer.Consume<TransactionEvent>(
                 config,
                 config["TOPICS:TRANSACTION"],
@@ -47,12 +60,6 @@ namespace Coflnet.Sky.Referral.Services
                 "sky-referral-rewards",
                 AutoOffsetReset.Earliest,
                 new TransactionDeserializer());
-            var verfify = Kafka.KafkaConsumer.Consume<VerificationEvent>(config, config["TOPICS:VERIFIED"], async lp =>
-            {
-                using var scope = scopeFactory.CreateScope();
-                var service = scope.ServiceProvider.GetRequiredService<ReferralService>();
-                await service.Verified(lp.UserId, lp.MinecraftUuid, lp.ExistingConCount);
-            }, stoppingToken, "sky-referral");
 
             await Task.WhenAny(transactions, verfify);
             throw new Exception("consuming ended");

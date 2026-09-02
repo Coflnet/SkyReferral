@@ -1,7 +1,10 @@
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Coflnet.Sky.Referral.Models;
 using Coflnet.Sky.Referral.Services;
+using Microsoft.Extensions.Configuration;
 
 namespace Coflnet.Sky.Referral.Controllers
 {
@@ -12,18 +15,20 @@ namespace Coflnet.Sky.Referral.Controllers
     [Route("[controller]")]
     public class ReferralController : ControllerBase
     {
-        private readonly ReferralDbContext db;
         private readonly ReferralService service;
+        private readonly IConfiguration configuration;
 
         /// <summary>
         /// Creates a new instance of <see cref="ReferralController"/>
         /// </summary>
-        /// <param name="context"></param>
         /// <param name="service"></param>
-        public ReferralController(ReferralDbContext context, ReferralService service)
+        /// <param name="configuration"></param>
+        public ReferralController(
+            ReferralService service,
+            IConfiguration configuration)
         {
-            db = context;
             this.service = service;
+            this.configuration = configuration;
         }
 
         /// <summary>
@@ -42,6 +47,13 @@ namespace Coflnet.Sky.Referral.Controllers
             string programVersion,
             string locale)
         {
+            var expected = configuration["REFERRAL_MUTATION_TOKEN"];
+            var supplied = Request.Headers["X-Referral-Mutation-Token"].ToString();
+            if (expected?.Length < 32 || supplied.Length < 32
+                || !CryptographicOperations.FixedTimeEquals(
+                    SHA256.HashData(Encoding.UTF8.GetBytes(expected)),
+                    SHA256.HashData(Encoding.UTF8.GetBytes(supplied))))
+                throw new ApiException("Referral mutation is not authorized");
             return await service.AddReferral(userId, referedUser, programVersion, locale);
         }
         /// <summary>

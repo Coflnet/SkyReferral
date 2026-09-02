@@ -52,6 +52,7 @@ namespace Coflnet.Sky.Referral
             services.AddJaeger(Configuration);
             services.AddTransient<ReferralService>();
             services.AddTransient<RewardProgramService>();
+            services.AddTransient<CreatorOnboardingService>();
             if (!ReferralService.IsProgramVersionConfigured(
                     Configuration["REFERRAL_PROGRAM_VERSION"]))
                 throw new InvalidOperationException(
@@ -59,9 +60,20 @@ namespace Coflnet.Sky.Referral
             if (Configuration.GetValue<bool>("REWARDS:ENABLED")
                 && (string.IsNullOrWhiteSpace(Configuration["REWARDS:WRITE_TOKEN"])
                     || Configuration["REWARDS:WRITE_TOKEN"].Length < 32
-                    || string.IsNullOrWhiteSpace(Configuration["REWARDS:WRITE_ACTOR"])))
+                    || string.IsNullOrWhiteSpace(Configuration["REWARDS:WRITE_ACTOR"])
+                    || string.IsNullOrWhiteSpace(Configuration["REWARDS:PAYOUT_TOKEN"])
+                    || Configuration["REWARDS:PAYOUT_TOKEN"].Length < 32
+                    || string.IsNullOrWhiteSpace(Configuration["REWARDS:PAYOUT_ACTOR"])))
                 throw new InvalidOperationException(
-                    "Enabled rewards require a write token and actor");
+                    "Enabled rewards require separate writer and payout credentials");
+            foreach (var token in new[]
+                {
+                    Configuration["CREATOR_ONBOARDING:READ_TOKEN"],
+                    Configuration["CREATOR_ONBOARDING:REVIEW_TOKEN"]
+                })
+                if (!string.IsNullOrEmpty(token) && token.Length < 32)
+                    throw new InvalidOperationException(
+                        "Creator onboarding tokens must contain at least 32 characters");
             var paymentBaseUrl = Configuration["PAYMENTS_BASE_URL"];
             services.AddSingleton(col=>new Payments.Client.Api.ProductsApi(paymentBaseUrl));
             services.AddSingleton(col=>new Payments.Client.Api.UserApi(paymentBaseUrl));

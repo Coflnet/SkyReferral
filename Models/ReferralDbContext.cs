@@ -13,6 +13,7 @@ namespace Coflnet.Sky.Referral.Models
     {
         public DbSet<ReferralElement> Referrals { get; set; }
         public DbSet<RewardLedgerEntry> RewardLedger { get; set; }
+        public DbSet<CreatorOnboardingReview> CreatorOnboardingReviews { get; set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="ReferralDbContext"/>
@@ -62,11 +63,33 @@ namespace Coflnet.Sky.Referral.Models
                         "OR (`RewardAccountId` IS NOT NULL AND `ClaimCodeHash` IS NULL AND `ClaimedAt` IS NOT NULL)))");
                 });
             });
+
+            modelBuilder.Entity<CreatorOnboardingReview>(entity =>
+            {
+                entity.HasIndex(e => new { e.CreatorUserId, e.ReviewedAtUtc });
+                entity.HasIndex(e => new { e.CreatorUserId, e.PreviousReviewId })
+                    .IsUnique();
+                entity.ToTable("CreatorOnboardingReviews", table =>
+                {
+                    table.HasCheckConstraint(
+                        "CK_CreatorOnboardingReviews_Status",
+                        "`Status` BETWEEN 1 AND 4");
+                    table.HasCheckConstraint(
+                        "CK_CreatorOnboardingReviews_SellerType",
+                        "`SellerType` BETWEEN 1 AND 2");
+                    table.HasCheckConstraint(
+                        "CK_CreatorOnboardingReviews_CapacityStatus",
+                        "`CapacityStatus` BETWEEN 1 AND 3");
+                    table.HasCheckConstraint(
+                        "CK_CreatorOnboardingReviews_TaxDocumentRoute",
+                        "`TaxDocumentRoute` BETWEEN 1 AND 5");
+                });
+            });
         }
 
         public override int SaveChanges(bool acceptAllChangesOnSuccess)
         {
-            ProtectLedger();
+            ProtectAppendOnlyRecords();
             return base.SaveChanges(acceptAllChangesOnSuccess);
         }
 
@@ -74,11 +97,11 @@ namespace Coflnet.Sky.Referral.Models
             bool acceptAllChangesOnSuccess,
             CancellationToken cancellationToken = default)
         {
-            ProtectLedger();
+            ProtectAppendOnlyRecords();
             return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
         }
 
-        private void ProtectLedger()
+        private void ProtectAppendOnlyRecords()
         {
             foreach (var entry in ChangeTracker.Entries<RewardLedgerEntry>()
                 .Where(item => item.State is EntityState.Modified or EntityState.Deleted))
@@ -98,6 +121,10 @@ namespace Coflnet.Sky.Referral.Models
                 throw new InvalidOperationException(
                     "Reward ledger entries are append-only except for one anonymous claim.");
             }
+            if (ChangeTracker.Entries<CreatorOnboardingReview>()
+                .Any(item => item.State is EntityState.Modified or EntityState.Deleted))
+                throw new InvalidOperationException(
+                    "Creator onboarding reviews are append-only.");
         }
     }
 }
