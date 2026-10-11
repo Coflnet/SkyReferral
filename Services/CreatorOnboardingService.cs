@@ -405,8 +405,17 @@ public class CreatorOnboardingService
     private static bool IsSha256(string value) =>
         value?.Length == 64 && value.All(Uri.IsHexDigit);
 
+    // Countries admitted under Creator License Annex A.6 (individuals only,
+    // Statement route, full § 50a withholding). Add a country only when it
+    // has no tax treaty with Germany itself (a parent state's treaty does not
+    // count, so NC is not mapped to FR), is not on the StAbwV or EU
+    // non-cooperative tax lists, is not sanctioned, and capacity law and the
+    // payout route are reviewed. No legal text change is needed for that.
+    private static readonly string[] NonTreatyIndividualCountries = ["NC"];
+
     private static bool PaidCountry(string country) =>
         country == "GB" || country == "US" || country == "CH"
+            || NonTreatyIndividualCountries.Contains(country)
             || EuCountries.Contains(country);
 
     private static bool PaidCapacityJurisdiction(
@@ -415,6 +424,7 @@ public class CreatorOnboardingService
         CreatorSellerType sellerType)
     {
         var supported = jurisdiction is "GB-ENG" or "GB-WLS" or "CH"
+            || NonTreatyIndividualCountries.Contains(jurisdiction)
             || jurisdiction == "US"
             || jurisdiction.Length == 5 && jurisdiction.StartsWith("US-")
             || jurisdiction.Length == 2 && EuCountries.Contains(jurisdiction);
@@ -441,6 +451,9 @@ public class CreatorOnboardingService
             "CH" => route == (sellerType == CreatorSellerType.Business
                 ? CreatorTaxDocumentRoute.CreatorInvoice
                 : CreatorTaxDocumentRoute.Statement),
+            _ when NonTreatyIndividualCountries.Contains(country) =>
+                sellerType == CreatorSellerType.Individual
+                    && route == CreatorTaxDocumentRoute.Statement,
             _ when EuCountries.Contains(country) =>
                 route == (sellerType == CreatorSellerType.Business
                     ? CreatorTaxDocumentRoute.CreatorInvoice

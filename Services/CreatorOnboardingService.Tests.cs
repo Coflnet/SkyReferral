@@ -270,6 +270,81 @@ public class CreatorOnboardingServiceTests
     }
 
     [Test]
+    public async Task NewCaledoniaIndividualSupportsPaidPublicationWithTheStatementRoute()
+    {
+        await using var db = NewDb();
+        var service = new CreatorOnboardingService(db);
+        await service.Append(Request() with
+        {
+            ResidenceCountry = "NC",
+            TaxResidenceCountry = "NC",
+            CapacityJurisdiction = "NC",
+            TaxDocumentRoute = CreatorTaxDocumentRoute.Statement,
+            VerificationReference = null
+        }, "legal-reviewer");
+
+        var result = await service.GetEligibility(CreatorId, MinecraftUuid);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Eligible, Is.True);
+            Assert.That(result.PaidPublicationReady, Is.True);
+        });
+    }
+
+    [Test]
+    public void NewCaledoniaRejectsTheBusinessSellerForPaidPublication()
+    {
+        using var db = NewDb();
+        var service = new CreatorOnboardingService(db);
+
+        foreach (var route in new[]
+        {
+            CreatorTaxDocumentRoute.CreatorInvoice,
+            CreatorTaxDocumentRoute.Statement
+        })
+        {
+            Assert.ThrowsAsync<RewardProgramException>(() => service.Append(
+                Request() with
+                {
+                    SellerType = CreatorSellerType.Business,
+                    ResidenceCountry = "NC",
+                    TaxResidenceCountry = "NC",
+                    CapacityJurisdiction = "NC",
+                    TaxDocumentRoute = route
+                }, "legal-reviewer"));
+        }
+    }
+
+    [Test]
+    public void NewCaledoniaIsNotTreatedAsFrance()
+    {
+        using var db = NewDb();
+        var service = new CreatorOnboardingService(db);
+
+        // NC and FR are distinct codes: an NC resident cannot claim an FR
+        // capacity jurisdiction, nor an FR resident an NC one.
+        Assert.ThrowsAsync<RewardProgramException>(() => service.Append(
+            Request() with
+            {
+                ResidenceCountry = "NC",
+                TaxResidenceCountry = "NC",
+                CapacityJurisdiction = "FR",
+                TaxDocumentRoute = CreatorTaxDocumentRoute.Statement,
+                VerificationReference = null
+            }, "legal-reviewer"));
+        Assert.ThrowsAsync<RewardProgramException>(() => service.Append(
+            Request() with
+            {
+                ResidenceCountry = "FR",
+                TaxResidenceCountry = "FR",
+                CapacityJurisdiction = "NC",
+                TaxDocumentRoute = CreatorTaxDocumentRoute.Statement,
+                VerificationReference = null
+            }, "legal-reviewer"));
+    }
+
+    [Test]
     public async Task BusinessRequiresAdultSignatoryAndBusinessTaxRoute()
     {
         await using var db = NewDb();

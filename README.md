@@ -35,7 +35,8 @@ Manual Expert onboarding is stored as immutable review records. The lightweight
 review and, for a 16+ minor, the guardian's acceptance make `Eligible` permit
 free publication from any country. `PaidPublicationReady` additionally requires
 a supported paid territory and tax-document route (and verified entity details
-for a business). Individual identity and payout evidence is collected only when
+for a business). Paid publication currently supports EU Member States, GB (England/Wales),
+US, CH and, for individuals only, the non-treaty countries of Creator License Annex A.6 listed in `NonTreatyIndividualCountries` (currently NC, Statement route, full § 50a withholding). Individual identity and payout evidence is collected only when
 a payout is prepared. Store any raw identity, age and representative documents
 outside this service; only opaque references and evidence digests belong here.
 The record keeps residence and tax countries, capacity jurisdiction
