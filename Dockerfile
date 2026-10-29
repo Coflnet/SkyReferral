@@ -5,6 +5,7 @@ WORKDIR /build/sky
 COPY SkyReferral.csproj SkyReferral.csproj
 RUN dotnet restore
 COPY . .
+RUN dotnet test SkyReferral.csproj
 RUN dotnet publish -c release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0

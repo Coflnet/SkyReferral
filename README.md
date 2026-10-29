@@ -51,3 +51,30 @@ an explicit, separate action in `/cofl sellconfig`. Use separate 32-character
 This project should be deployed within a container. 
 ### Configuration
 See appsettings.json
+
+### Optional SQL TLS
+
+`DB_CONNECTION` retains its existing hosts, port, database, account and password.
+Set all three `DB:TLS:CA_CERT_PATH`, `DB:TLS:CERT_PATH` and `DB:TLS:KEY_PATH`
+(or the corresponding `DB__TLS__...` environment variables) to enable verified
+TLS. The CA file contains trusted roots; the client certificate PEM contains the
+leaf and issuing intermediates. The database host names/IPs in `DB_CONNECTION`
+must match the server certificate SANs. There is no hostname bypass.
+
+The application uses MySqlConnector 2.6.2's `Required` mode with Core's strict
+server-certificate callback because the driver's MariaDB password-bound TLS
+fallback can soften native `VerifyFull` errors. Client credentials reload only
+when a new physical TLS connection opens. The pool lifetime is capped at 300
+seconds (a shorter configured lifetime is retained), and connection timeout at
+10 seconds. This does not interrupt active queries or impose a maximum duration
+on an already checked-out connection.
+
+Run with a writable ephemeral `HOME`: the current user's CertificateAuthority
+store holds only validated public client intermediates, needed for the driver's
+leaf-only certificate API. No root/system trust is installed. The application owns certificates for its lifetime. Mount projected PEM files
+without `subPath` so future physical connections can observe renewal.
+
+Startup keeps the existing database migration before serving HTTP and then
+checks `SELECT 1` with a five-second budget. `/health/ready` performs the same
+read-only database check and returns 503 on failure. Kafka configuration,
+consumption groups/topics, Payments HTTP and existing HTTP routes are unchanged.

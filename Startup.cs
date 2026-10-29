@@ -16,6 +16,9 @@ using System.Net;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Coflnet.Core.Security;
+using Coflnet.Sky.Referral.Infrastructure;
+using Microsoft.AspNetCore.Http;
 
 namespace Coflnet.Sky.Referral
 {
@@ -43,10 +46,19 @@ namespace Coflnet.Sky.Referral
 
             var serverVersion = new MariaDbServerVersion(
                 new Version(Configuration["MARIADB_VERSION"]));
+            var connectionString = DatabaseTls.ConnectionString(Configuration);
+            if (Configuration.GetSection("DB:TLS").Exists())
+            {
+                services.AddSingleton(_ => PemTlsOptions.FromConfiguration(Configuration.GetSection("DB:TLS")));
+                services.AddSingleton<DatabaseTlsInterceptor>();
+            }
             services.AddDbContext<ReferralDbContext>(
-                dbContextOptions => dbContextOptions
-                    .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
-                    .EnableDetailedErrors()
+                (provider, options) =>
+                {
+                    options.UseMySql(connectionString, serverVersion).EnableDetailedErrors();
+                    if (Configuration.GetSection("DB:TLS").Exists())
+                        options.AddInterceptors(provider.GetRequiredService<DatabaseTlsInterceptor>());
+                }
             );
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger(Configuration);
@@ -111,6 +123,20 @@ namespace Coflnet.Sky.Referral
             {
                 endpoints.MapMetrics();
                 endpoints.MapControllers();
+                endpoints.MapGet("/health/ready", async context =>
+                {
+                    try
+                    {
+                        await DatabaseReadiness.CheckAsync(context.RequestServices.GetRequiredService<ReferralDbContext>(),
+                            context.RequestAborted);
+                        await context.Response.WriteAsync("ready");
+                    }
+                    catch (Exception)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                        await context.Response.WriteAsync("not ready");
+                    }
+                });
             });
         }
     }

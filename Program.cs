@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Coflnet.Sky.Referral.Infrastructure;
+using System.Threading;
 
 namespace Coflnet.Sky.Referral
 {
@@ -13,8 +15,11 @@ namespace Coflnet.Sky.Referral
         {
             var host = CreateHostBuilder(args).Build();
             using (var scope = host.Services.CreateScope())
-                scope.ServiceProvider.GetRequiredService<ReferralDbContext>()
-                    .Database.Migrate();
+            {
+                var database = scope.ServiceProvider.GetRequiredService<ReferralDbContext>();
+                database.Database.Migrate();
+                DatabaseReadiness.CheckAsync(database, CancellationToken.None).GetAwaiter().GetResult();
+            }
             host.Run();
         }
 
